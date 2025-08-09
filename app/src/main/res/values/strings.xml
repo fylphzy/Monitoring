@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Monitoring</string>
+    <string name="selamat_datang">Selamat Datang</string>
+    <string name="daftar_user">DAFTAR USER</string>
+    <string name="akurasi">AKURASI</string>
+    <string name="latitude">LATITUDE :</string>
+    <string name="nilai_la">0.00</string>
+    <string name="longitude">LONGITUDE :</string>
+    <string name="nilai_lo">0.00</string>
+    <string name="username">username</string>
+    <string name="logo">logo</string>
+    <string name="log_in">Log In</string>
+    <string name="emergency">EMERGENCY</string>
+    <string name="award">award</string>
+
+    <string name="welcome_format">Selamat datang, %1$s</string>
+    <string name="latitude_format">Latitude: %1$.5f</string>
+    <string name="longitude_format">Longitude: %1$.5f</string>
+    <string name="permission_required">Izin lokasi diperlukan</string>
+    <string name="permission_denied">Izin lokasi ditolak</string>
+    <string name="location_failed">Gagal mendapatkan lokasi</string>
+    <string name="accurate_location_format">Lokasi akurat: %1$.5f, %2$.5f</string>
+    <string name="update_failed">Gagal mengupdate lokasi</string>
+    <string name="error_format">Error: %1$s</string>
+    <string name="emergency_failed">Gagal mengirim sinyal darurat</string>
+
+    <string name="connection_failed">Koneksi gagal. Periksa jaringan Anda.</string>
+    <string name="accurate_location">Lokasi akurat:\nLat: %1$.6f\nLon: %2$.6f</string>
+    <string name="emergency_sent">Sinyal darurat berhasil dikirim!</string>
+    <string name="confirmed">Terkonfirmasi</string>
+    <string name="not_confirmed">Belum dikonfirmasi</string>
+    <string name="status_check_failed">Gagal memeriksa status konfirmasi.</string>
+    <string name="monitoring">TRC MONITORING</string>
+    <string name="link_maps">LINK MAPS</string>
+    <string name="whatsapp">WHATSAPP</string>
+    <string name="konfirmasi">KONFIRMASI</string>
+    <string name="sinyal_darurat_sudah_dikonfirmasi">Sinyal darurat sudah dikonfirmasi</string>
+    <string name="sinyal_darurat_belum_dikonfirmasi">Sinyal darurat belum dikonfirmasi</string>
+    <string name="status_tidak_diketahui">Status tidak diketahui</string>
+    <string name="data_user">DATA USER</string>
+    <string name="wa">WHATSAPP</string>
+    <string name="lokasi">LOKASI</string>
+    <string name="batalkan_konfirmasi">BATALKAN KONFIRMASI</string>
+    <string name="hint_nilai">0</string>
+
+    <string name="username_id_status">Username [ID] Status</string>
+    <string name="user_status_format">%1$s [%2$d] %3$s</string>
+    <string name="darurat">DARURAT!!!</string>
+    <string name="status_sudah">Sudah Dikonfirmasi</string>
+    <string name="status_belum">Belum Dikonfirmasi</string>
+    <string name="icon_user">icon_user</string>
+
+    <string name="monitoring_service_title">Monitoring Service</string>
+    <string name="monitoring_service_desc">Memantau sinyal emergency.</string>
+    <string name="emergency_notification_title">Emergency Alert</string>
+    <string name="emergency_notification_desc">Pengguna %1$s membutuhkan bantuan!</string>
+    <string name="indikator">indikator</string>
+
+    <!-- res/values/strings.xml (tambahkan entri berikut) -->
+    <string name="pantau_sub_format">emr=%1$d, status=%2$d</string>
+    <string name="pantau_no_timestamp">-</string>
+    <string name="emr_timestamp">yyyy/mm/dd/ hh/mm/ss</string>
+
+</resources>

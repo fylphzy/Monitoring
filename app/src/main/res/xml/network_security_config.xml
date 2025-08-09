@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Default: jangan izinkan cleartext untuk semua host -->
+    <base-config cleartextTrafficPermitted="false" />
+
+    <!-- Izinkan cleartext hanya untuk domain ini -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">gpsangkutan.kir.my.id</domain>
+    </domain-config>
+</network-security-config>

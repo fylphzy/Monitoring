@@ -1,0 +1,103 @@
+package com.fylphzy.monitoring
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
+import com.fylphzy.monitoring.network.RetrofitClient
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+class DetailActivity : AppCompatActivity() {
+
+    private lateinit var userText: TextView
+    private lateinit var valueLatitude: TextView
+    private lateinit var valueLongitude: TextView
+    private lateinit var indicatorKonfirmasi: TextView
+    private lateinit var lokasiBtn: TextView
+    private lateinit var waBtn: TextView
+    private lateinit var confirmBtn: TextView
+    private lateinit var cancelConfirm: TextView
+    private lateinit var backBtn: TextView
+
+    private var username: String = ""
+    private var whatsapp: String = ""
+    private var la: Double = 0.0
+    private var lo: Double = 0.0
+    private var confStatus: Int = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_detail)
+
+        username = intent.getStringExtra("username") ?: ""
+        whatsapp = intent.getStringExtra("whatsapp") ?: ""
+        la = intent.getDoubleExtra("la", 0.0)
+        lo = intent.getDoubleExtra("lo", 0.0)
+        confStatus = intent.getIntExtra("conf_status", 0)
+
+        userText = findViewById(R.id.userText)
+        valueLatitude = findViewById(R.id.valueLatitude)
+        valueLongitude = findViewById(R.id.valueLongitude)
+        indicatorKonfirmasi = findViewById(R.id.indicatorKonfirmasi)
+        lokasiBtn = findViewById(R.id.lokasi)
+        waBtn = findViewById(R.id.wa)
+        confirmBtn = findViewById(R.id.confirmBtn)
+        cancelConfirm = findViewById(R.id.cancelconfirm)
+        backBtn = findViewById(R.id.backBtn)
+
+        userText.text = username
+        valueLatitude.text = la.toString()
+        valueLongitude.text = lo.toString()
+        updateIndicator()
+
+        backBtn.setOnClickListener { finish() }
+
+        lokasiBtn.setOnClickListener {
+            val uri = "https://www.google.com/maps?q=$la,$lo".toUri()
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        }
+
+        waBtn.setOnClickListener {
+            val uri = "https://wa.me/$whatsapp".toUri()
+            startActivity(Intent(Intent.ACTION_VIEW, uri))
+        }
+
+        confirmBtn.setOnClickListener {
+            updateConfirmation(1)
+        }
+
+        cancelConfirm.setOnClickListener {
+            updateConfirmation(0)
+        }
+    }
+
+    private fun updateIndicator() {
+        indicatorKonfirmasi.isSelected = (confStatus == 1)
+    }
+
+
+    private fun updateConfirmation(status: Int) {
+        RetrofitClient.instance.updateConfStatus(username, status)
+            .enqueue(object : Callback<Map<String, String>> {
+                override fun onResponse(call: Call<Map<String, String>>, response: Response<Map<String, String>>) {
+                    if (response.isSuccessful) {
+                        confStatus = status
+                        updateIndicator()
+                        setResult(RESULT_OK)
+                        val msg = response.body()?.get("message") ?: "Status diperbarui"
+                        Toast.makeText(this@DetailActivity, msg, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@DetailActivity, "Gagal memperbarui status (server)", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<Map<String, String>>, t: Throwable) {
+                    Toast.makeText(this@DetailActivity, "Gagal koneksi ke server", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+}

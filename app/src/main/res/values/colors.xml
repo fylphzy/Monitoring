@@ -1,0 +1,39 @@
+<resources>
+    <!-- alias untuk MaterialTheme yang cari "primary" dkk. -->
+    <color name="primary">@color/colorPrimary</color>
+    <color name="primary_variant">@color/colorPrimaryVariant</color>
+    <color name="on_primary">@color/colorOnPrimary</color>
+
+    <color name="secondary">@color/colorSecondary</color>
+    <color name="secondary_variant">@color/colorSecondaryVariant</color>
+    <color name="on_secondary">@color/colorOnSecondary</color>
+
+    <color name="background">@color/colorBackground</color>
+    <color name="surface">@color/colorSurface</color>
+    <color name="on_background">@color/colorOnBackground</color>
+    <color name="on_surface">@color/colorOnSurface</color>
+
+    <color name="error">@color/colorError</color>
+    <color name="on_error">@color/colorOnError</color>
+
+    <color name="colorPrimary">#070077</color>
+    <color name="colorPrimaryVariant">#070047</color>
+    <color name="colorSecondary">#1E88E5</color>
+    <color name="colorSecondaryVariant">#1565C0</color>
+    <color name="colorBackground">#F5F5F5</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorOnSecondary">#FFFFFF</color>
+    <color name="colorOnBackground">#000000</color>
+    <color name="colorOnSurface">#000000</color>
+    <color name="colorError">#B00020</color>
+    <color name="colorOnError">#FFFFFF</color>
+
+    <!-- resource lain -->
+    <color name="white">#FFFFFF</color>
+    <color name="accent_blue">#2F318B</color>
+    <color name="hijau_indikator">#4CAF50</color>
+    <color name="merah_indikator">#F44336</color>
+
+    <!-- dll -->
+</resources>

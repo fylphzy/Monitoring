@@ -1,0 +1,14 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="oval">
+            <solid android:color="#4CAF50"/> <!-- hijau -->
+            <size android:width="40dp" android:height="40dp"/>
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#F44336"/> <!-- merah -->
+            <size android:width="40dp" android:height="40dp"/>
+        </shape>
+    </item>
+</selector>
