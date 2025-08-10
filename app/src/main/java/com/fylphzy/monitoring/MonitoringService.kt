@@ -27,6 +27,7 @@ class MonitoringService : Service() {
         private const val PREFS_NAME = "monitoring_service_prefs"
         private const val PREF_KEY_ACTIVE = "active_notifications"
         private const val POLL_INTERVAL_MS = 5000L // 5 detik
+        private const val FOREGROUND_NOTIFICATION_ID = 999_999
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -89,7 +90,7 @@ class MonitoringService : Service() {
             .setSmallIcon(R.drawable.ic_location)
             .setOngoing(true)
             .build()
-        startForeground(1, notification)
+        startForeground(FOREGROUND_NOTIFICATION_ID, notification)
     }
 
     private fun checkEmergencySignals() {
