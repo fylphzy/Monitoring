@@ -18,6 +18,7 @@ import com.fylphzy.monitoring.adapter.PantauAdapter
 import com.fylphzy.monitoring.model.ApiResponse
 import com.fylphzy.monitoring.model.Pantau
 import com.fylphzy.monitoring.network.RetrofitClient
+import com.google.android.material.button.MaterialButton
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -46,6 +47,14 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = PantauAdapter(this, emptyList())
         recyclerView.adapter = adapter
+
+        // Handler untuk tombol logout
+        val logoutBtn = findViewById<MaterialButton>(R.id.logoutBtn)
+        logoutBtn.setOnClickListener {
+            moveTaskToBack(true) // Pindahkan task ke background
+            finishAffinity()     // Tutup semua Activity
+            // Tidak menghentikan MonitoringService
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(

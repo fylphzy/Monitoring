@@ -67,7 +67,7 @@ class DetailActivity : AppCompatActivity() {
         backBtn.setOnClickListener { finish() }
 
         lokasiBtn.setOnClickListener {
-            val uri = "https://www.google.com/maps?q=$la,$lo".toUri()
+            val uri = "https://kir.my.id/trc/".toUri()
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
 

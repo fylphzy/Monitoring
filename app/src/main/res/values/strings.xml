@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Monitoring</string>
+    <string name="app_name">TRC Monitoring</string>
     <string name="selamat_datang">Selamat Datang</string>
     <string name="daftar_user">DAFTAR USER</string>
     <string name="akurasi">AKURASI</string>
