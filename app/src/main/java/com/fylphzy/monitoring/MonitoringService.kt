@@ -72,19 +72,22 @@ class MonitoringService : Service() {
         RetrofitClient.instance.getPantauList().enqueue(object : Callback<ApiResponse> {
             override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
                 if (response.isSuccessful) {
-                    val emergencyUsers = response.body()?.data?.filter {
-                        it.emr == 1 && it.confStatus == 0
-                    } ?: emptyList()
-                    emergencyUsers.forEach { user ->
-                        sendEmergencyNotification(user)
+                    val allUsers = response.body()?.data ?: emptyList()
+                    val manager = getSystemService(NotificationManager::class.java)
+                    allUsers.forEach { user ->
+                        if (user.emr == 1 && user.confStatus == 0) {
+                            sendEmergencyNotification(user)
+                        } else {
+                            manager.cancel(user.id)
+                        }
                     }
                 }
             }
-
             override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
             }
         })
     }
+
 
     private fun sendEmergencyNotification(user: Pantau) {
         val notificationId = user.id

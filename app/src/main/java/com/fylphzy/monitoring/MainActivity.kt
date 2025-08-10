@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PantauAdapter
     private val handler = Handler(Looper.getMainLooper())
-    private val refreshInterval = 30000L
+    private val refreshInterval = 5000L
     private val permissionRequestCode = 1001
     private var isLoading = false
 

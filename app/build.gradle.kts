@@ -45,20 +45,13 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.google.material)
-    //noinspection UseTomlInstead
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-    //noinspection UseTomlInstead
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    //noinspection UseTomlInstead
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    //noinspection UseTomlInstead
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
-    //noinspection UseTomlInstead
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    //noinspection UseTomlInstead
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
-    //noinspection UseTomlInstead
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.6.1")
+    implementation(libs.play.services.location)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)

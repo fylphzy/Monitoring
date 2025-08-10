@@ -89,7 +89,7 @@
         android:layout_width="360dp"
         android:layout_height="500dp"
         android:layout_marginTop="40dp"
-        android:background="@drawable/bg_biru_card"
+        android:background="@drawable/bg_putih_card"
         android:padding="12dp"
         app:layout_constraintBottom_toTopOf="@id/imgAward"
         app:layout_constraintEnd_toEndOf="parent"
