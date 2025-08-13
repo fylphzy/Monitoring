@@ -3,7 +3,6 @@ package com.fylphzy.monitoring
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -48,15 +47,13 @@ class MainActivity : AppCompatActivity() {
         adapter = PantauAdapter(this, emptyList())
         recyclerView.adapter = adapter
 
-        // Handler untuk tombol logout
         val logoutBtn = findViewById<MaterialButton>(R.id.logoutBtn)
         logoutBtn.setOnClickListener {
-            moveTaskToBack(true) // Pindahkan task ke background
-            finishAffinity()     // Tutup semua Activity
-            // Tidak menghentikan MonitoringService
+            moveTaskToBack(true)
+            finishAffinity()
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
                     Manifest.permission.POST_NOTIFICATIONS
@@ -70,7 +67,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        startService(Intent(this, MonitoringService::class.java))
+        val svcIntent = Intent(this, MonitoringService::class.java)
+        try {
+            ContextCompat.startForegroundService(this, svcIntent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Gagal memulai monitoring service: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
 
         loadPantauList()
         scheduleDataRefresh()

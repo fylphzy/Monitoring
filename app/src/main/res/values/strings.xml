@@ -61,5 +61,7 @@
     <string name="pantau_sub_format">emr=%1$d, status=%2$d</string>
     <string name="pantau_no_timestamp">-</string>
     <string name="emr_timestamp">yyyy/mm/dd/ hh/mm/ss</string>
+    <string name="deskripsi_darurat">Deskripsi Darurat</string>
+    <string name="deskripsi">DESKRIPSI :</string>
 
 </resources>

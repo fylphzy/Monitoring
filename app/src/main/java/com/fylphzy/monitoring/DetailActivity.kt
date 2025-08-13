@@ -35,7 +35,7 @@ class DetailActivity : AppCompatActivity() {
     private var confStatus: Int = 0
 
     private val handler = Handler(Looper.getMainLooper())
-    private val refreshInterval = 30000L // 30 detik
+    private val refreshInterval = 30000L
     private var isLoading = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,7 +103,6 @@ class DetailActivity : AppCompatActivity() {
                         val msg = response.body()?.get("message") ?: "Status diperbarui"
                         Toast.makeText(this@DetailActivity, msg, Toast.LENGTH_SHORT).show()
 
-                        // Hapus notifikasi jika status == 1 (terkonfirmasi)
                         if (status == 1) {
                             val manager = getSystemService(NotificationManager::class.java)
                             manager.cancel(id)

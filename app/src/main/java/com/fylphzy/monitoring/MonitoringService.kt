@@ -11,13 +11,13 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import com.fylphzy.monitoring.model.ApiResponse
 import com.fylphzy.monitoring.model.Pantau
 import com.fylphzy.monitoring.network.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import androidx.core.content.edit
 
 class MonitoringService : Service() {
 
@@ -25,14 +25,17 @@ class MonitoringService : Service() {
         private const val CHANNEL_ID_FOREGROUND = "monitoring_service_channel"
         private const val CHANNEL_ID_EMERGENCY = "emergency_channel"
         private const val PREFS_NAME = "monitoring_service_prefs"
-        private const val PREF_KEY_ACTIVE = "active_notifications"
-        private const val POLL_INTERVAL_MS = 5000L // 5 detik
+        private const val PREF_KEY_ACTIVE = "active_notifications_set"
+        private const val POLL_INTERVAL_MS = 5000L
         private const val FOREGROUND_NOTIFICATION_ID = 999_999
+        private const val NOTIF_ID_BASE = 10_000
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var prefs: SharedPreferences
     private val activeNotifications = mutableSetOf<Int>()
+    @Volatile private var foregroundStarted = false
+
     private val pollRunnable = object : Runnable {
         override fun run() {
             checkEmergencySignals()
@@ -45,10 +48,13 @@ class MonitoringService : Service() {
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         loadActiveNotifications()
         createNotificationChannels()
-        startForegroundServiceNotification()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!foregroundStarted) {
+            startForegroundServiceNotification()
+            foregroundStarted = true
+        }
         handler.removeCallbacksAndMessages(null)
         handler.post(pollRunnable)
         return START_STICKY
@@ -62,8 +68,7 @@ class MonitoringService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannels() {
-        val manager = getSystemService(NotificationManager::class.java)
-        // Foreground channel (low importance)
+        val manager = getSystemService(NotificationManager::class.java) ?: return
         val foregroundChannel = NotificationChannel(
             CHANNEL_ID_FOREGROUND,
             "Monitoring Service",
@@ -71,7 +76,6 @@ class MonitoringService : Service() {
         ).apply {
             description = "Service berjalan untuk memantau sinyal emergency"
         }
-        // Emergency channel (high importance / heads-up)
         val emergencyChannel = NotificationChannel(
             CHANNEL_ID_EMERGENCY,
             "Emergency Alerts",
@@ -98,55 +102,49 @@ class MonitoringService : Service() {
             override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
                 if (!response.isSuccessful) return
                 val allUsers = response.body()?.data ?: emptyList()
-                val manager = getSystemService(NotificationManager::class.java)
-
-                // Track ids seen on this poll. If notification was removed from active set externally,
-                // we still handle according to server state.
+                val manager = getSystemService(NotificationManager::class.java) ?: return
                 val serverIds = mutableSetOf<Int>()
-
                 allUsers.forEach { user ->
                     val nid = user.id
                     serverIds.add(nid)
 
                     if (user.emr == 1 && user.confStatus == 0) {
-                        // EMERGENCY and not confirmed -> ensure notification exists
-                        if (!activeNotifications.contains(nid)) {
-                            sendEmergencyNotification(user)
-                            activeNotifications.add(nid)
-                            saveActiveNotifications()
-                        } else {
-                            // already active -> do nothing (no resend)
+                        synchronized(activeNotifications) {
+                            if (!activeNotifications.contains(nid)) {
+                                sendEmergencyNotification(user, manager)
+                                activeNotifications.add(nid)
+                                saveActiveNotifications()
+                            }
                         }
                     } else {
-                        // either not emergency or already confirmed -> remove if exists
-                        if (activeNotifications.contains(nid)) {
-                            manager.cancel(nid)
-                            activeNotifications.remove(nid)
-                            saveActiveNotifications()
+                        synchronized(activeNotifications) {
+                            if (activeNotifications.contains(nid)) {
+                                manager.cancel(NOTIF_ID_BASE + nid)
+                                activeNotifications.remove(nid)
+                                saveActiveNotifications()
+                            }
                         }
                     }
                 }
 
-                // Optional cleanup: if activeNotifications contains ids no longer on server,
-                // cancel them to avoid stale notifications.
-                val toRemove = activeNotifications.filter { it !in serverIds }
-                toRemove.forEach { orphanId ->
-                    manager.cancel(orphanId)
-                    activeNotifications.remove(orphanId)
+                val toRemove = synchronized(activeNotifications) {
+                    activeNotifications.filter { it !in serverIds }.toList()
                 }
-                if (toRemove.isNotEmpty()) saveActiveNotifications()
+                if (toRemove.isNotEmpty()) {
+                    toRemove.forEach { orphanId ->
+                        manager.cancel(NOTIF_ID_BASE + orphanId)
+                        synchronized(activeNotifications) { activeNotifications.remove(orphanId) }
+                    }
+                    saveActiveNotifications()
+                }
             }
 
             override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
-                // network failure -> do nothing this cycle
             }
         })
     }
 
-    private fun sendEmergencyNotification(user: Pantau) {
-        val notificationManager = getSystemService(NotificationManager::class.java)
-
-        // Intent opens DetailActivity with full payload
+    private fun sendEmergencyNotification(user: Pantau, manager: NotificationManager) {
         val intent = Intent(this, DetailActivity::class.java).apply {
             putExtra("id", user.id)
             putExtra("username", user.username)
@@ -154,11 +152,11 @@ class MonitoringService : Service() {
             putExtra("la", user.la)
             putExtra("lo", user.lo)
             putExtra("conf_status", user.confStatus)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            user.id, // requestCode unique per user.id
+            user.id,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -173,25 +171,25 @@ class MonitoringService : Service() {
             .setContentText(line1)
             .setStyle(NotificationCompat.BigTextStyle().bigText("$line1\n$line2"))
             .setContentIntent(pendingIntent)
-            .setAutoCancel(false) // do not auto-cancel, remove only when confirmed
-            .setOngoing(true)      // keep visible until explicitly removed
+            .setAutoCancel(false)
+            .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)
 
-        notificationManager.notify(user.id, builder.build())
+        val notifId = NOTIF_ID_BASE + user.id
+        manager.notify(notifId, builder.build())
     }
 
-    // --- Persistence helpers for activeNotifications set ---
     private fun saveActiveNotifications() {
+        val stringSet = synchronized(activeNotifications) {
+            activeNotifications.map { it.toString() }.toSet()
+        }
         prefs.edit {
-            putString(PREF_KEY_ACTIVE, activeNotifications.joinToString(","))
+            putStringSet(PREF_KEY_ACTIVE, stringSet)
         }
     }
 
     private fun loadActiveNotifications() {
-        val csv = prefs.getString(PREF_KEY_ACTIVE, "") ?: ""
-        if (csv.isBlank()) return
-        csv.split(",")
-            .mapNotNull { it.trim().toIntOrNull() }
-            .forEach { activeNotifications.add(it) }
+        val set = prefs.getStringSet(PREF_KEY_ACTIVE, null) ?: return
+        set.mapNotNull { it.toIntOrNull() }.forEach { activeNotifications.add(it) }
     }
 }

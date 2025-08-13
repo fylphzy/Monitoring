@@ -112,7 +112,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/main_card"
         android:layout_width="360dp"
-        android:layout_height="240dp"
+        android:layout_height="360dp"
         android:background="@drawable/bg_biru_card"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -243,6 +243,36 @@
                 app:layout_constraintStart_toStartOf="@id/lokasi"
                 app:layout_constraintTop_toBottomOf="@id/lokasi"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/desc_tittle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/deskripsi"
+            android:gravity="center"
+            android:fontFamily="sans-serif"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/emr_description"
+            app:layout_constraintStart_toStartOf="@id/emr_description" />
+        <TextView
+            android:id="@+id/emr_description"
+            android:layout_width="300dp"
+            android:layout_height="50dp"
+            app:cornerRadius="20dp"
+            android:background="@drawable/bg_text_putih"
+            android:text="@string/deskripsi_darurat"
+            android:gravity="center"
+            android:fontFamily="sans-serif"
+            android:textColor="#000000"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintVertical_bias="0.5"
+            app:layout_constraintTop_toBottomOf="@id/groupInfo"
+            app:layout_constraintBottom_toBottomOf="@id/main_card"
+            app:layout_constraintStart_toStartOf="@id/main_card"
+            app:layout_constraintEnd_toEndOf="@id/main_card"/>
 
         <TextView
             android:id="@+id/indicatorKonfirmasi"

@@ -30,14 +30,12 @@ class PantauAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = list[position]
 
-        // Status konfirmasi dari string resource
         val statusKonfirmasi = if (item.confStatus == 1) {
             context.getString(R.string.status_sudah)
         } else {
             context.getString(R.string.status_belum)
         }
 
-        // Format baris pertama
         holder.tvInfoBaris1.text = context.getString(
             R.string.user_status_format,
             item.username,
@@ -45,15 +43,12 @@ class PantauAdapter(
             statusKonfirmasi
         )
 
-        // Baris kedua DARURAT!!!
         holder.tvInfoBaris2.text = context.getString(R.string.darurat)
 
-        // Warna kedua baris sama sesuai status
         val warna = if (item.confStatus == 1) Color.GREEN else Color.RED
         holder.tvInfoBaris1.setTextColor(warna)
         holder.tvInfoBaris2.setTextColor(warna)
 
-        // Klik item → panggil openDetail di MainActivity
         holder.itemView.setOnClickListener {
             if (context is MainActivity) {
                 context.openDetail(item)
