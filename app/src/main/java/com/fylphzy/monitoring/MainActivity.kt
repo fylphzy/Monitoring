@@ -24,11 +24,15 @@ import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val PERM_REQ_NOTIF = 1001
+        private const val LOCATION_PERMS_CODE = 2001
+    }
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: PantauAdapter
     private val handler = Handler(Looper.getMainLooper())
     private val refreshInterval = 5000L
-    private val permissionRequestCode = 1001
     private var isLoading = false
 
     private val detailLauncher =
@@ -53,19 +57,8 @@ class MainActivity : AppCompatActivity() {
             finishAffinity()
         }
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    permissionRequestCode
-                )
-            }
-        }
+        checkNotificationPermission()
+        ensureLocationPermissions()
 
         val svcIntent = Intent(this, MonitoringService::class.java)
         try {
@@ -78,15 +71,51 @@ class MainActivity : AppCompatActivity() {
         scheduleDataRefresh()
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    private fun checkNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), PERM_REQ_NOTIF)
+            }
+        }
+    }
+
+    private fun ensureLocationPermissions() {
+        val perms = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            perms.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (perms.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, perms.toTypedArray(), LOCATION_PERMS_CODE)
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), LOCATION_PERMS_CODE)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == permissionRequestCode) {
-            if (grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == PERM_REQ_NOTIF) {
+            if (grantResults.isEmpty() || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        if (requestCode == LOCATION_PERMS_CODE) {
+            val fineIdx = permissions.indexOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            val coarseIdx = permissions.indexOf(Manifest.permission.ACCESS_COARSE_LOCATION)
+            val fineGranted = if (fineIdx >= 0) grantResults.getOrNull(fineIdx) == PackageManager.PERMISSION_GRANTED else true
+            val coarseGranted = if (coarseIdx >= 0) grantResults.getOrNull(coarseIdx) == PackageManager.PERMISSION_GRANTED else true
+
+            if (!fineGranted && !coarseGranted) {
+                Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -128,7 +157,7 @@ class MainActivity : AppCompatActivity() {
             putExtra("la", pantau.la)
             putExtra("lo", pantau.lo)
             putExtra("conf_status", pantau.confStatus)
-            putExtra("emr_desc", pantau.emrDesc) // <-- tambahkan ini
+            putExtra("emr_desc", pantau.emrDesc)
         }
         detailLauncher.launch(intent)
     }

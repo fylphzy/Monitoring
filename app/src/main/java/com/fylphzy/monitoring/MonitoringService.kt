@@ -10,6 +10,7 @@ import android.content.SharedPreferences
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import com.fylphzy.monitoring.model.ApiResponse
@@ -18,6 +19,7 @@ import com.fylphzy.monitoring.network.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import kotlin.math.min
 
 class MonitoringService : Service() {
 
@@ -29,12 +31,15 @@ class MonitoringService : Service() {
         private const val POLL_INTERVAL_MS = 5000L
         private const val FOREGROUND_NOTIFICATION_ID = 999_999
         private const val NOTIF_ID_BASE = 10_000
+        private const val TAG = "MonitoringService"
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var prefs: SharedPreferences
     private val activeNotifications = mutableSetOf<Int>()
     @Volatile private var foregroundStarted = false
+
+    private var consecutiveFailures = 0
 
     private val pollRunnable = object : Runnable {
         override fun run() {
@@ -73,16 +78,12 @@ class MonitoringService : Service() {
             CHANNEL_ID_FOREGROUND,
             "Monitoring Service",
             NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "Service berjalan untuk memantau sinyal emergency"
-        }
+        ).apply { description = "Service berjalan untuk memantau sinyal emergency" }
         val emergencyChannel = NotificationChannel(
             CHANNEL_ID_EMERGENCY,
             "Emergency Alerts",
             NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Notifikasi darurat"
-        }
+        ).apply { description = "Notifikasi darurat" }
         manager.createNotificationChannel(foregroundChannel)
         manager.createNotificationChannel(emergencyChannel)
     }
@@ -100,7 +101,11 @@ class MonitoringService : Service() {
     private fun checkEmergencySignals() {
         RetrofitClient.instance.getPantauList().enqueue(object : Callback<ApiResponse> {
             override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
-                if (!response.isSuccessful) return
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "checkEmergencySignals response not successful: ${response.code()}")
+                    return
+                }
+                consecutiveFailures = 0
                 val allUsers = response.body()?.data ?: emptyList()
                 val manager = getSystemService(NotificationManager::class.java) ?: return
                 val serverIds = mutableSetOf<Int>()
@@ -118,9 +123,7 @@ class MonitoringService : Service() {
                         }
                     } else {
                         synchronized(activeNotifications) {
-                            if (activeNotifications.contains(nid)) {
-                                manager.cancel(NOTIF_ID_BASE + nid)
-                                activeNotifications.remove(nid)
+                            if (activeNotificationsContainsAndRemove(nid, manager)) {
                                 saveActiveNotifications()
                             }
                         }
@@ -140,8 +143,24 @@ class MonitoringService : Service() {
             }
 
             override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
+                consecutiveFailures++
+                Log.e(TAG, "checkEmergencySignals onFailure (${consecutiveFailures}): ${t.localizedMessage}")
+                val multiplier = 1L shl min(consecutiveFailures, 3)
+                val delay = POLL_INTERVAL_MS * multiplier
+                handler.removeCallbacks(pollRunnable)
+                handler.postDelayed(pollRunnable, delay)
             }
         })
+    }
+
+    private fun activeNotificationsContainsAndRemove(nid: Int, manager: NotificationManager): Boolean {
+        var changed = false
+        if (activeNotifications.contains(nid)) {
+            manager.cancel(NOTIF_ID_BASE + nid)
+            activeNotifications.remove(nid)
+            changed = true
+        }
+        return changed
     }
 
     private fun sendEmergencyNotification(user: Pantau, manager: NotificationManager) {
@@ -152,6 +171,7 @@ class MonitoringService : Service() {
             putExtra("la", user.la)
             putExtra("lo", user.lo)
             putExtra("conf_status", user.confStatus)
+            putExtra("emr_desc", user.emrDesc)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val pendingIntent = PendingIntent.getActivity(
@@ -162,8 +182,9 @@ class MonitoringService : Service() {
         )
 
         val statusKonfirmasi = if (user.confStatus == 1) getString(R.string.status_sudah) else getString(R.string.status_belum)
+        val emrTimestampText = user.emrTimestamp.takeIf { it.isNotBlank() } ?: getString(R.string.emr_timestamp)
         val line1 = getString(R.string.user_status_format, user.username, user.id, statusKonfirmasi)
-        val line2 = getString(R.string.darurat)
+        val line2 = emrTimestampText
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID_EMERGENCY)
             .setSmallIcon(R.drawable.ic_location)
@@ -183,9 +204,7 @@ class MonitoringService : Service() {
         val stringSet = synchronized(activeNotifications) {
             activeNotifications.map { it.toString() }.toSet()
         }
-        prefs.edit {
-            putStringSet(PREF_KEY_ACTIVE, stringSet)
-        }
+        prefs.edit { putStringSet(PREF_KEY_ACTIVE, stringSet) }
     }
 
     private fun loadActiveNotifications() {

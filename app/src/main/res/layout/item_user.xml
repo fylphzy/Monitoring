@@ -16,15 +16,14 @@
         android:textStyle="bold"
         android:textColor="@android:color/black" />
 
-    <!-- Baris kedua: DARURAT!!! -->
     <TextView
         android:id="@+id/tvInfoBaris2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/darurat"
+        android:text="@string/emr_timestamp"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginTop="2dp"
-        android:textColor="@android:color/holo_red_dark" />
+        android:textColor="@android:color/black" />
 
 </LinearLayout>

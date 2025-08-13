@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,8 +20,8 @@ import retrofit2.Response
 class DetailActivity : AppCompatActivity() {
 
     companion object {
-        // samakan dengan MonitoringService.NOTIF_ID_BASE
         private const val NOTIF_ID_BASE = 10_000
+        private const val TAG = "DetailActivity"
     }
 
     private lateinit var userText: TextView
@@ -58,7 +59,7 @@ class DetailActivity : AppCompatActivity() {
         confStatus = intent.getIntExtra("conf_status", 0)
         val emrDescIntent = intent.getStringExtra("emr_desc")
 
-        // view binding via findViewById (sesuaikan id dengan layout Anda)
+        // view binding via findViewById
         userText = findViewById(R.id.userText)
         valueLatitude = findViewById(R.id.valueLatitude)
         valueLongitude = findViewById(R.id.valueLongitude)
@@ -68,19 +69,20 @@ class DetailActivity : AppCompatActivity() {
         confirmBtn = findViewById(R.id.confirmBtn)
         cancelConfirm = findViewById(R.id.cancelconfirm)
         backBtn = findViewById(R.id.backBtn)
-        emrDescView = findViewById(R.id.emr_description) // pastikan id ini ada
+        emrDescView = findViewById(R.id.emr_description)
 
         // isi awal
         userText.text = username
         valueLatitude.text = la.toString()
         valueLongitude.text = lo.toString()
+
+        // langsung gunakan properti model / intent; tidak lagi reflection
         emrDescView.text = emrDescIntent?.takeIf { it.isNotBlank() } ?: getString(R.string.deskripsi_darurat)
         updateIndicator()
 
         backBtn.setOnClickListener { finish() }
 
         lokasiBtn.setOnClickListener {
-            // jika Anda punya URL lokasi dinamis, ganti string di bawah
             val uri = "https://kir.my.id/trc/".toUri()
             startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
@@ -110,7 +112,6 @@ class DetailActivity : AppCompatActivity() {
                         Toast.makeText(this@DetailActivity, msg, Toast.LENGTH_SHORT).show()
 
                         if (status == 1) {
-                            // batalkan notifikasi yang relevan
                             val manager = getSystemService(NotificationManager::class.java)
                             manager?.cancel(NOTIF_ID_BASE + id)
                         }
@@ -120,6 +121,7 @@ class DetailActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(call: Call<Map<String, String>>, t: Throwable) {
+                    Log.e(TAG, "updateConfirmation onFailure: ${t.localizedMessage}")
                     Toast.makeText(this@DetailActivity, "Gagal koneksi ke server", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -139,6 +141,7 @@ class DetailActivity : AppCompatActivity() {
 
                 override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
                     isLoading = false
+                    Log.e(TAG, "loadDetail onFailure: ${t.localizedMessage}")
                 }
             })
     }
@@ -149,19 +152,9 @@ class DetailActivity : AppCompatActivity() {
         confStatus = detail.confStatus
         valueLatitude.text = la.toString()
         valueLongitude.text = lo.toString()
-        // tampilkan emr_desc jika tersedia
-        val desc = try {
-            // model mungkin sudah punya emrDesc; gunakan reflection-safe access
-            detail.javaClass.getDeclaredField("emrDesc").let { f ->
-                f.isAccessible = true
-                val v = f.get(detail) as? String
-                v
-            }
-        } catch (_: Exception) {
-            // fallback jika field tidak ada atau akses gagal
-            null
-        }
-        emrDescView.text = desc?.takeIf { it.isNotBlank() } ?: getString(R.string.deskripsi_darurat)
+
+        // gunakan properti emrDesc langsung
+        emrDescView.text = detail.emrDesc?.takeIf { it.isNotBlank() } ?: getString(R.string.deskripsi_darurat)
         updateIndicator()
     }
 
@@ -179,6 +172,11 @@ class DetailActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        handler.removeCallbacksAndMessages(null)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         handler.removeCallbacksAndMessages(null)
     }
 }
