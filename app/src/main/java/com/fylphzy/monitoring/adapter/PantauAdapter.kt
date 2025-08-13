@@ -16,7 +16,6 @@ class PantauAdapter(
     private val context: Context,
     private var list: List<Pantau>
 ) : RecyclerView.Adapter<PantauAdapter.ViewHolder>() {
-
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvInfoBaris1: TextView = view.findViewById(R.id.tvInfoBaris1)
         val tvInfoBaris2: TextView = view.findViewById(R.id.tvInfoBaris2)
@@ -35,22 +34,16 @@ class PantauAdapter(
         } else {
             context.getString(R.string.status_belum)
         }
-
         holder.tvInfoBaris1.text = context.getString(
             R.string.user_status_format,
             item.username,
             item.id,
             statusKonfirmasi
         )
-
-        // tampilkan emr_timestamp. jika kosong tampilkan placeholder.
         holder.tvInfoBaris2.text = item.emrTimestamp.takeIf { it.isNotBlank() } ?: context.getString(R.string.pantau_no_timestamp)
-
-        // warna: pertahankan logika semula (konfirmasi -> hijau, else merah)
         val warna = if (item.confStatus == 1) Color.GREEN else Color.RED
         holder.tvInfoBaris1.setTextColor(warna)
         holder.tvInfoBaris2.setTextColor(warna)
-
         holder.itemView.setOnClickListener {
             if (context is MainActivity) {
                 context.openDetail(item)
@@ -73,11 +66,9 @@ class PantauAdapter(
     ) : DiffUtil.Callback() {
         override fun getOldListSize() = oldList.size
         override fun getNewListSize() = newList.size
-
         override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
             return oldList[oldItemPosition].id == newList[newItemPosition].id
         }
-
         override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
             return oldList[oldItemPosition] == newList[newItemPosition]
         }
