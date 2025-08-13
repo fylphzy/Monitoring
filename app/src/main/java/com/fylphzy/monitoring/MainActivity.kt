@@ -128,6 +128,7 @@ class MainActivity : AppCompatActivity() {
             putExtra("la", pantau.la)
             putExtra("lo", pantau.lo)
             putExtra("conf_status", pantau.confStatus)
+            putExtra("emr_desc", pantau.emrDesc) // <-- tambahkan ini
         }
         detailLauncher.launch(intent)
     }
