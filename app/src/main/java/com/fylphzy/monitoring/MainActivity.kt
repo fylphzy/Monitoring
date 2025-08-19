@@ -6,11 +6,13 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.fylphzy.monitoring.adapter.PantauAdapter
@@ -26,7 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val PERM_REQ_NOTIF = 1001
-        private const val LOCATION_PERMS_CODE = 2001
+        private const val TAG = "MainActivity"
     }
 
     private lateinit var recyclerView: RecyclerView
@@ -53,18 +55,24 @@ class MainActivity : AppCompatActivity() {
 
         val logoutBtn = findViewById<MaterialButton>(R.id.logoutBtn)
         logoutBtn.setOnClickListener {
+            // clear saved notification set supaya tidak meninggalkan stale state (pakai KTX edit)
+            getSharedPreferences("monitoring_service_prefs", MODE_PRIVATE).edit {
+                remove("active_notifications_set")
+            }
+
             moveTaskToBack(true)
             finishAffinity()
         }
 
         checkNotificationPermission()
-        ensureLocationPermissions()
+        // ensureLocationPermissions()  <-- DIHAPUS karena lokasi tidak digunakan
 
         val svcIntent = Intent(this, MonitoringService::class.java)
         try {
             ContextCompat.startForegroundService(this, svcIntent)
         } catch (e: Exception) {
             Toast.makeText(this, "Gagal memulai monitoring service: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "startForegroundService error", e)
         }
 
         loadPantauList()
@@ -81,25 +89,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun ensureLocationPermissions() {
-        val perms = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            perms.add(Manifest.permission.ACCESS_COARSE_LOCATION)
-        }
-        if (perms.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, perms.toTypedArray(), LOCATION_PERMS_CODE)
-            return
-        }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), LOCATION_PERMS_CODE)
-            }
-        }
-    }
-
+    // onRequestPermissionsResult hanya tangani PERM_REQ_NOTIF sekarang
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERM_REQ_NOTIF) {
@@ -107,16 +97,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Notification permission denied", Toast.LENGTH_SHORT).show()
             }
             return
-        }
-        if (requestCode == LOCATION_PERMS_CODE) {
-            val fineIdx = permissions.indexOf(Manifest.permission.ACCESS_FINE_LOCATION)
-            val coarseIdx = permissions.indexOf(Manifest.permission.ACCESS_COARSE_LOCATION)
-            val fineGranted = if (fineIdx >= 0) grantResults.getOrNull(fineIdx) == PackageManager.PERMISSION_GRANTED else true
-            val coarseGranted = if (coarseIdx >= 0) grantResults.getOrNull(coarseIdx) == PackageManager.PERMISSION_GRANTED else true
-
-            if (!fineGranted && !coarseGranted) {
-                Toast.makeText(this, getString(R.string.permission_denied), Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
@@ -126,18 +106,40 @@ class MainActivity : AppCompatActivity() {
         RetrofitClient.instance.getPantauList().enqueue(object : Callback<ApiResponse> {
             override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
                 isLoading = false
-                if (response.isSuccessful) {
-                    val allUsers = response.body()?.data ?: emptyList()
-                    val emergencyUsers = allUsers.filter { it.emr == 1 }
-                    adapter.updateData(emergencyUsers)
-                } else {
-                    Toast.makeText(this@MainActivity, "Failed to load data (Server error)", Toast.LENGTH_SHORT).show()
+                if (!response.isSuccessful) {
+                    Toast.makeText(this@MainActivity, "Failed to load data (Server error ${response.code()})", Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "response not successful code=${response.code()} body=${response.errorBody()?.string()}")
+                    return
                 }
+
+                val body = response.body()
+                Log.d(TAG, "loadPantauList body=$body")
+                if (body == null) {
+                    Toast.makeText(this@MainActivity, "Response invalid", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                // terima status "ok" atau "success"
+                if (body.status != "success" && body.status != "ok") {
+                    Toast.makeText(this@MainActivity, "${body.status}: tidak ada data", Toast.LENGTH_SHORT).show()
+                    return
+                }
+
+                // Prioritaskan recycle (server-side filter emr==1 & within24)
+                val listToShow: List<Pantau> = if (body.recycle.isNotEmpty()) {
+                    body.recycle
+                } else {
+                    body.data.filter { it.emr == 1 }
+                }
+
+                Log.d(TAG, "loadPantauList: showing ${listToShow.size} items (recycle=${body.recycle.size})")
+                adapter.updateData(listToShow)
             }
 
             override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
                 isLoading = false
                 Toast.makeText(this@MainActivity, "Failed to load data", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "loadPantauList failure", t)
             }
         })
     }

@@ -40,7 +40,11 @@ class PantauAdapter(
             item.id,
             statusKonfirmasi
         )
-        holder.tvInfoBaris2.text = item.emrTimestamp.takeIf { it.isNotBlank() } ?: context.getString(R.string.pantau_no_timestamp)
+
+        // safe-call karena emrTimestamp sekarang nullable
+        holder.tvInfoBaris2.text = item.emrTimestamp?.takeIf { it.isNotBlank() }
+            ?: context.getString(R.string.pantau_no_timestamp)
+
         val warna = if (item.confStatus == 1) Color.GREEN else Color.RED
         holder.tvInfoBaris1.setTextColor(warna)
         holder.tvInfoBaris2.setTextColor(warna)

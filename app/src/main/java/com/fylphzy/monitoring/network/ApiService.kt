@@ -1,10 +1,9 @@
 package com.fylphzy.monitoring.network
 
 import com.fylphzy.monitoring.model.ApiResponse
+import com.fylphzy.monitoring.model.SimpleResponse
 import retrofit2.Call
 import retrofit2.http.*
-import retrofit2.http.GET
-import retrofit2.http.Query
 
 interface ApiService {
 
@@ -19,5 +18,5 @@ interface ApiService {
     fun updateConfStatus(
         @Field("username") username: String,
         @Field("conf_status") confStatus: Int
-    ): Call<Map<String, String>>
+    ): Call<SimpleResponse>
 }
