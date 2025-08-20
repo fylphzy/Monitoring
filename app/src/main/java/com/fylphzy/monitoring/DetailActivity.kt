@@ -27,7 +27,7 @@ import retrofit2.Response
 class DetailActivity : AppCompatActivity() {
 
     companion object {
-        private const val NOTIF_ID_BASE = 10_000
+        private const val NOTIF_ID_BASE = 3_000
         private const val TAG = "DetailActivity"
         const val ACTION_CONF_CHANGED = "CONF_STATUS_CHANGED"
     }
@@ -51,7 +51,7 @@ class DetailActivity : AppCompatActivity() {
     private var confStatus: Int = 0
 
     private val handler = Handler(Looper.getMainLooper())
-    private val refreshInterval = 30_000L
+    private val refreshInterval = 3_000L
     private var isLoading = false
 
     private val detailRefreshRunnable = object : Runnable {
