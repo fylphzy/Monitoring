@@ -63,5 +63,6 @@
     <string name="emr_timestamp">yyyy/mm/dd/ hh/mm/ss</string>
     <string name="deskripsi_darurat">Deskripsi Darurat</string>
     <string name="deskripsi">DESKRIPSI :</string>
+    <string name="indikator_konfirmasi">indikator_konfirmasi</string>
 
 </resources>

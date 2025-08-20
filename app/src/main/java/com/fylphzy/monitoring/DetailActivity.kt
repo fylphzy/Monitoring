@@ -1,7 +1,10 @@
 package com.fylphzy.monitoring
 
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -11,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.fylphzy.monitoring.model.ApiResponse
 import com.fylphzy.monitoring.model.Pantau
 import com.fylphzy.monitoring.model.SimpleResponse
@@ -25,6 +29,7 @@ class DetailActivity : AppCompatActivity() {
     companion object {
         private const val NOTIF_ID_BASE = 10_000
         private const val TAG = "DetailActivity"
+        const val ACTION_CONF_CHANGED = "CONF_STATUS_CHANGED"
     }
 
     private lateinit var userText: TextView
@@ -56,11 +61,25 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
+    private val confReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val u = intent?.getStringExtra("username") ?: return
+            if (u != username) return
+            val s = intent.getIntExtra("conf_status", Int.MIN_VALUE)
+            if (s != Int.MIN_VALUE) {
+                confStatus = s
+                updateIndicator()
+            } else {
+                // fallback: re-load full detail if no explicit status provided
+                loadDetail()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
 
-        // Ambil data dari intent
         id = intent.getIntExtra("id", 0)
         username = intent.getStringExtra("username") ?: ""
         whatsapp = intent.getStringExtra("whatsapp") ?: ""
@@ -69,7 +88,6 @@ class DetailActivity : AppCompatActivity() {
         confStatus = intent.getIntExtra("conf_status", 0)
         val emrDescIntent = intent.getStringExtra("emr_desc")
 
-        // Binding view
         userText = findViewById(R.id.userText)
         valueLatitude = findViewById(R.id.valueLatitude)
         valueLongitude = findViewById(R.id.valueLongitude)
@@ -81,7 +99,6 @@ class DetailActivity : AppCompatActivity() {
         backBtn = findViewById(R.id.backBtn)
         emrDescView = findViewById(R.id.emr_description)
 
-        // Isi awal
         userText.text = username
         valueLatitude.text = la.toString()
         valueLongitude.text = lo.toString()
@@ -109,7 +126,11 @@ class DetailActivity : AppCompatActivity() {
     }
 
     private fun updateIndicator() {
-        indicatorKonfirmasi.isSelected = (confStatus == 1)
+        // drawable selector uses state_selected
+        runOnUiThread {
+            indicatorKonfirmasi.isSelected = (confStatus == 1)
+            indicatorKonfirmasi.refreshDrawableState()
+        }
     }
 
     private fun updateConfirmation(status: Int) {
@@ -125,16 +146,23 @@ class DetailActivity : AppCompatActivity() {
                         Toast.makeText(this@DetailActivity, "Response invalid", Toast.LENGTH_SHORT).show()
                         return
                     }
-                    if (body.status != "success") {
+                    // Terima "success" atau "ok"
+                    if (body.status != "success" && body.status != "ok") {
                         Toast.makeText(this@DetailActivity, body.message, Toast.LENGTH_SHORT).show()
                         return
                     }
 
-                    // Sukses update
+                    // atur status lokal
                     confStatus = status
                     updateIndicator()
                     setResult(RESULT_OK)
                     Toast.makeText(this@DetailActivity, body.message, Toast.LENGTH_SHORT).show()
+
+                    // kirim broadcast internal supaya activity lain bisa langsung update
+                    val i = Intent(ACTION_CONF_CHANGED)
+                        .putExtra("username", username)
+                        .putExtra("conf_status", confStatus)
+                    LocalBroadcastManager.getInstance(this@DetailActivity).sendBroadcast(i)
 
                     // Hapus notifikasi terkait
                     val notifId = NOTIF_ID_BASE + id
@@ -166,7 +194,8 @@ class DetailActivity : AppCompatActivity() {
                     isLoading = false
                     if (!response.isSuccessful) return
                     val body = response.body() ?: return
-                    if (body.status != "success") return
+                    // terima "success" atau "ok"
+                    if (body.status != "success" && body.status != "ok") return
                     val detail = body.data.firstOrNull()
                     if (detail != null) applyDetail(detail)
                 }
@@ -192,14 +221,27 @@ class DetailActivity : AppCompatActivity() {
         handler.postDelayed(detailRefreshRunnable, refreshInterval)
     }
 
+    override fun onStart() {
+        super.onStart()
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(confReceiver, IntentFilter(ACTION_CONF_CHANGED))
+    }
+
     override fun onResume() {
         super.onResume()
+        // muat detail segera untuk sinkronisasi awal
+        loadDetail()
         scheduleDataRefresh()
     }
 
     override fun onPause() {
         super.onPause()
-        handler.removeCallbacksAndMessages(null)
+        handler.removeCallbacks(detailRefreshRunnable)
+    }
+
+    override fun onStop() {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(confReceiver)
+        super.onStop()
     }
 
     override fun onDestroy() {
